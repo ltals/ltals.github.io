@@ -3,16 +3,15 @@ project:
   output-dir: docs
 
 website:
-  title: "ltals.github.io"
+  title: "Luke Talman"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - about.qmd
 
 format:
   html:
-    theme: cosmo
+    theme: Litera
     css: styles.css
     toc: true
 
