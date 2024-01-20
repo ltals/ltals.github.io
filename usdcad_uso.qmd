@@ -1,0 +1,789 @@
+---
+title: "Quantative Trading Framework: USD/CAD Exchange Rate & Crude Price"
+editor: visual
+format:
+  html:
+    embed-resources: true
+---
+
+#### Luke Talman
+
+#### 2023-12-06
+
+## Strategy
+
+-   Momentum-based trading strategy intended to capitalize on the correlation that exists between crude prices and the CAD/USD exchange rate over certain periods
+    -   Utilizes a weighted 2 and 6 day Rate of Change of USO to predict USD/CAD exchange-rate directional in the near term
+    -   Market Entry/Exit strategy utilizing a 30 day rolling regression on USO and USD/CAD log returns
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(cansim)
+library(tidyverse)
+library(plotly)
+library(TTR)
+
+data_signal <- tidyquant::tq_get("USO",from = "2007-01-01") %>%
+  dplyr::rename_all(tools::toTitleCase) %>%
+  timetk::tk_xts(date_var = Date) %>%
+  quantmod::adjustOHLC(.,use.Adjusted = TRUE) %>%
+  timetk::tk_tbl(rename_index = "Date") %>%
+  dplyr::select(-Adjusted) %>%
+  dplyr::mutate(across(where(is.numeric), round, 2)) %>% 
+  dplyr::rename(date = Date) %>% 
+  drop_na()
+
+
+#OHLC likely redudant given nature of USO
+data_curr <- tidyquant::tq_get("CAD=X",from = "2007-01-01") %>%
+  dplyr::rename_all(tools::toTitleCase) %>%
+  timetk::tk_xts(date_var = Date) %>%
+  quantmod::adjustOHLC(.,use.Adjusted = TRUE) %>%
+  timetk::tk_tbl(rename_index = "Date") %>%
+  dplyr::select(-Adjusted) %>% 
+  dplyr::rename(date = Date) %>% 
+  drop_na()
+
+
+curplot <- ggplot(data_curr, aes(x = date, y = Close)) +
+  geom_line(color = 'red4') +
+  labs(title = "USD/CAD", y = "", x = "") +
+  theme_minimal()
+
+usoplot <- data_signal %>% 
+  ggplot(aes(x = date, y = Close)) +
+  geom_line(color = "grey22") +
+  labs(title = "USO ", y = "", x = "") +
+  theme_minimal()
+
+library(patchwork)
+
+curplot/usoplot
+```
+
+### Rationale
+
+The foundations of the trade rely on principles of currency supply and demand, and their relationship between imports and exports between different economies
+
+-   Oil and gas extraction exports represent a significant percentage of Canada's total exports (19.2% in 2022), with a majority of product going to the US
+-   Canadian energy products are generally exported to the US in exchange for USD, while Canadian producers incur significant costs in CAD
+-   When Oil Prices are high, the USD supply increases relative to CAD within Canada, increasing the CADs relative value
+-   Further, strong energy prices are often accompanied by net economic growth within Canada as producers are able to increase workforce and investment
+-   Following the above market fundamentals:
+    -   Positive momentum in crude prices should be reflected in a relative increase in CAD, vice versa
+    -   Due to the nature the currency inflow/outflow resulting from Oil Sales and Production (transport times, fixed-price production contracts, futures market etc.), one could expect that the currency-price effect of crude price change may not be fully realized in a single trading day
+        -   The trading strategy within this doc seeks to explore the possibility of this price disconnect
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+exports_can <- cansim::get_cansim("12-10-0098-01") 
+
+exports_can %>% 
+  transmute(REF_DATE, GEO, UOM, VALUE, NAICS = `North American Industry Classification System (NAICS)`) %>% 
+  filter(GEO == "Canada",
+         UOM == "Dollars",
+         NAICS %in% c("All industries","Oil and gas extraction [211]")) %>% 
+  select(REF_DATE, VALUE, NAICS) %>% 
+  pivot_wider(names_from = NAICS, values_from = VALUE) %>% 
+  mutate(`O&G Extraction` = `Oil and gas extraction [211]`/`All industries`) %>% 
+  select(REF_DATE, `O&G Extraction`) %>% 
+  plot_ly(x = ~REF_DATE,
+          y = ~`O&G Extraction`,
+          type = 'scatter', mode = 'lines')  %>%
+  layout(
+    title = "Canadian Oil and Gas Extraction Exports - Proportion of All Industries",
+    yaxis = list(title = "O&G Extraction Export Share"),
+    xaxis = list(title = ""),
+    annotations = list(list(text = "Source: Data via StatsCan",              
+        showarrow = FALSE,
+        xref = "paper",
+        yref = "paper",
+        x = .9,
+        y = -0.2)))
+  
+
+```
+
+### Research
+
+-   At its foundation, this strategy relies on a positive correlation between energy prices, and the Canadian dollars relative strength
+
+    -   As highlighted below, this relationship is not always present
+
+-   Given Canada's relative economic diversification to some other 'petrocurrency' countries, factors such as policy interest rates reinvestment rate in the oil industry, and general macroeconomic trends can reduce this correlation
+
+-   Recent applicable factors include:
+
+    -   Reduction in investment confidence for Canadian oil with production cap risk, midstream issues, and high marginal costs per barrel
+
+    -   Relative high US policy interest rates
+
+-   Crude prices changes have less explanatory power in USD/CAD prices changes from 2016 onward
+
+    -   This reduction in Adj. R Squared will likely reduce trade model efficacy
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+merge_rate <- data_curr %>% 
+    rename(rate = Close) %>%
+  mutate(rate_ret = log(rate/lag(rate))) %>% 
+  drop_na()
+  
+merge_uso <- data_signal %>% 
+  rename(uso = Close) %>% 
+  mutate(uso_ret = log(uso/lag(uso))) %>% 
+  drop_na()
+
+merge_reg <- full_join(merge_rate, merge_uso, by = "date") %>% 
+  drop_na() %>% 
+  select(date, rate_ret, uso_ret)
+
+pre_2016 <- merge_reg %>% 
+  filter(date < "2016-01-01",
+         date >= '2007-01-01')
+
+post_2016 <- merge_reg %>% 
+  filter(date >= "2016-01-01")
+  
+
+pre <- lm(rate_ret ~ uso_ret, data = pre_2016)
+
+sum_pre <- summary(pre)
+
+adj_r2_pre <- sum_pre$adj.r.squared
+
+post <- lm(rate_ret ~ uso_ret, data = post_2016)
+  
+sum_post <- summary(post)
+
+adj_r2_post <- sum_post$adj.r.squared
+
+prepost <- data.frame(adj_r2_pre, adj_r2_post) %>%
+  rename(`2007 - 2015` = adj_r2_pre, `2016 - Present` = adj_r2_post) %>% 
+  pivot_longer(cols = c(`2007 - 2015`, `2016 - Present`), names_to = "Period", values_to = "AdjRSquared") %>%
+  ggplot(aes(x = Period, y = AdjRSquared, fill = Period)) +
+  geom_bar(stat = "identity") +
+  labs(title = "USO (X) & USD/CAD (Y) Log Returns - Adj. R-squared",
+       x = "", 
+       y = "Adjusted R-squared")+
+  theme_minimal()
+
+prepost 
+
+
+```
+
+# Model Implementation
+
+## Data
+
+### Series Selected:
+
+-   United States Oil Fund (USO)
+
+    -   Exchanged traded security intended to capture the change in USO's net asset value
+
+        -   The funds assets are composed of crude oil futures contracts and other oil-related contracts
+
+    -   Under performance relative to WTI spot price in recent time, in part due to negative roll yield associated with period of contango in the oil market
+
+-   CAD/USD Exchange Rate
+
+## Signals & Trades
+
+#### Signals Utilized
+
+-   2 & 6 Day Rate of Change (ROC) of daily USO close price
+
+    -   The ROC used to generate a final signal is a weighted average of the two measures, with Alpha and Beta determining the 2 & 6 day weight, respectively
+
+    -   A weighted ROC of \> 0 signals a short position in USD/CAD
+
+    -   A weighted ROC of \< 0 signals a long position in USD/CAD
+
+    -   Combining ROCs with two different windows intents to reduce noise, given the volatility of daily returns
+
+-   30 Day Rolling Regression of CAD/USD daily returns on USO daily returns
+
+    -   A statically significant (at Alpha = .1) and slope coefficient \< 0 generates positive signal to enter/stay in the market
+
+    -   Any other combinations of signals signals a no trade/exit from the market
+
+    -   The use of these two measures intends capture the direction and significance of the impact USO returns have on CAD/USD returns on a daily basis a given point in time, using recent historical data
+
+-   Combined Signal
+
+    -   A final signal is generated that combines the long/short directional of the ROC signal, as well as the no trade/exit signal generate via the regression
+
+        -   If the regression signal does not indicated a no trade/exit, a long/short signal is generated in based on the sign of the ROC signal
+
+        -   If the regression signal indicates a no trade/exit, a signal of zero is generated
+
+        -   Corresponding USO price data is not available for all USD/CAD trading days; on days with missing price data, a 0 (no trade/exit) signal is generated
+
+#### Trades
+
+-   Trades are generated using the combined signal from the previous day
+
+    -   0 indicated that no market position should be held; no trade will occur, unless it is to close an existing position
+
+    -   1 indicates short position USD/CAD
+
+    -   -1 indicates a long position USD/CAD
+
+## Training Period
+
+-   A training window from 2007-01-01 to 2018-12-31 was selected
+
+    -   Price data for USO begins in 2006-05-01
+
+    -   Maximizes trade data sample size
+
+    -   Includes periods of significant energy price volatility
+
+```{r, echo=FALSE}
+# Roll reg. function def.
+
+rollReg <- function(data, window) {
+  reg_output <- data.frame()
+  for (i in window:nrow(data)) {
+    # iterate with window size
+    subset <- data[(i - window + 1):i, ]
+    # lm obj.
+    model <- lm(rate_ret ~ uso_ret, data = subset)
+    # Extracting values from lm model
+    slope <- summary(model)$coefficients[2]
+    pVal <- anova(model)$'Pr(>F)'[1]
+    # Binding to pre-defined dataframe
+    reg_output <- rbind(reg_output, data.frame(i = i, slope = slope, pVal = pVal))
+  }
+
+  return(reg_output)
+}
+
+
+```
+
+## Optimization
+
+Four parameters are optimized within the model:
+
+-   Number of days to consider when calculating either un-weighted ROC
+
+    -   Values between 2 and 4 days for the shorter term ROC
+
+    -   Values were considered between 5 and 10 days for the longer term ROC
+
+-   Alpha and Beta values utilized combining either ROC into a single value
+
+    -   Values between .2 and .8 at .2 increments were considered, with any final combination summing to 1
+
+-   The inclusion of a rolling regression significantly increased optimization time complexity; ideally, a broader range of Alpha and Beta's would be considered
+
+## Risk Appetite
+
+-   Minimize max drawdown length
+    -   Given the varying correlation between USO and CAD/USD returns, having a strategy that has shorted anticipated drawdowns (per the training set) could provide signs earlier, should the strategy start failing
+        -   Filter for lower 10% percentile
+-   Upper 10% percentileof Omegas
+    -   Ensure reasonable risk-to-reward
+-   Select highest cumulative return of the subset
+
+## Performance
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
+options("getSymbols.warning4.0" = FALSE, cache = TRUE)
+library(tidyverse)
+library(tidyquant)
+library(timetk)
+library(TTR)
+library(PerformanceAnalytics)
+library(knitr)
+
+
+strategy <- function(data_curr = dat_cur,
+                     data_signal = dat_signal_pull,
+                     roc1 = 3,
+                     roc2 = 6,
+                     alpha = 0.5,
+                     beta = 0.5){
+
+  merge_rate <- data_curr %>% 
+    rename(rate = Close) %>%
+  mutate(rate_ret = log(rate/lag(rate))) %>% 
+  drop_na()
+  
+  merge_uso <- data_signal %>% 
+  rename(uso = Close) %>% 
+  mutate(uso_ret = log(uso/lag(uso))) %>% 
+  drop_na()
+
+  merge_reg <- full_join(merge_rate, merge_uso, by = "date") %>% 
+  drop_na() %>% 
+  select(date, rate_ret, uso_ret) %>% 
+  mutate(i = row_number())
+  
+  rollreg <- rollReg(merge_reg, 30)
+  
+  rollreg <- full_join(merge_reg, rollreg, by = "i") %>% 
+  drop_na()
+
+
+# returns
+tick <- data_curr %>%
+  dplyr::mutate(
+    # Close on Close over two days
+    retClCl = Close / dplyr::lag(Close) - 1, 
+    # Close vs Open on same day
+    retOpCl = (Close - Open) / Close,
+    # Open vs prior day Close
+    retClOp = Open / dplyr::lag(Close) - 1
+  )
+
+
+data_signal <- full_join(data_signal, rollreg, by = "date") %>% 
+  drop_na()
+
+
+data_signal <- data_signal %>%
+  dplyr::mutate(
+    roc1 = ROC(Close, n = roc1),
+    roc2 = ROC(Close, n = roc2),
+    roc = (alpha*roc1 + beta*roc2)) %>% 
+  drop_na() %>%
+   dplyr::mutate(signal_reg = dplyr::case_when(
+     slope < 0 & pVal < 0.1 ~ 1,
+     pVal >= 0.1 ~ 0,
+     slope > 0 & pVal < 0.1 ~ 0,
+     TRUE ~ NA)) %>% 
+  dplyr::mutate(signal_roc = dplyr::case_when(roc < 0 ~ 1,
+                                          roc > 0 ~ -1,
+                                          TRUE ~ NA)) %>%
+  dplyr::mutate(signal = dplyr::case_when(
+    signal_reg == 1 & signal_roc == 1 ~ 1,
+    signal_reg == 0 & !is.na(signal_roc) ~ 0,
+    signal_reg == 1 & signal_roc == -1 ~ -1,
+    TRUE ~ NA)) 
+  data_signal <- data_signal %>%
+    transmute(date, signal, ROC = roc, SlopeCoef = slope)
+  
+tickSig <- left_join(tick, data_signal, by = "date")
+
+tickSig <- tickSig %>%
+  mutate(signal = case_when(
+    is.na(signal) ~ 0,
+    TRUE ~ signal))
+
+tickSig <- tickSig %>%
+  dplyr::mutate(trade = tidyr::replace_na(dplyr::lag(signal) - dplyr::lag(signal, n = 2L), 0))
+
+
+tickSig <- tickSig %>% 
+  dplyr::mutate(
+    pos = cumsum(trade),
+    # PL
+    # When you a new trade, your return is from the Open to Close.
+    ret_new = ifelse(pos == trade , pos * retOpCl, 0),
+    # When you maintain the same position day as the previous day, your return is Close on Close.
+    ret_exist = ifelse(pos != 0 & trade == 0, pos * retClCl, 0),
+    # When you change your position, how should it be computed? Think of how you would execute.
+    ret_others = dplyr::case_when((pos - trade) != 0 &
+                                    trade != 0 ~ (1 + retClOp * (pos - trade)) * (1 + retOpCl * pos) - 1,
+                                  TRUE ~ 0
+    ),
+    ret = ret_new + ret_exist + ret_others
+  )
+# Compute Cumulative PL
+tickSig <- tickSig %>%
+  dplyr::mutate(
+      cumeq = cumprod(1 + ret)
+    )
+  return(tickSig = tickSig)
+
+}
+
+roc1 <- 3
+roc2 <- 6
+alpha <- 0.4
+beta <- 0.6
+
+dat_signal_pull <- tidyquant::tq_get("USO",from = "2006-06-01") %>%
+  dplyr::rename_all(tools::toTitleCase) %>%
+  timetk::tk_xts(date_var = Date) %>%
+  quantmod::adjustOHLC(.,use.Adjusted = TRUE) %>%
+  timetk::tk_tbl(rename_index = "Date") %>%
+  dplyr::select(-Adjusted) %>%
+  dplyr::mutate(across(where(is.numeric), round, 2)) %>% 
+  dplyr::rename(date = Date) %>% 
+  drop_na()
+
+
+#OHLC likely redudant given nature of USO
+dat_cur <- tidyquant::tq_get("CAD=X",from = "2006-06-01") %>%
+  dplyr::rename_all(tools::toTitleCase) %>%
+  timetk::tk_xts(date_var = Date) %>%
+  quantmod::adjustOHLC(.,use.Adjusted = TRUE) %>%
+  timetk::tk_tbl(rename_index = "Date") %>%
+  dplyr::select(-Adjusted) %>% 
+  dplyr::rename(date = Date) %>% 
+  drop_na()
+
+
+train_sig <- dat_signal_pull %>% 
+  filter(date < '2019-01-01')
+
+train_cur <- dat_cur %>% 
+  filter(date < '2019-01-01')
+
+
+
+result <- strategy(data_curr = train_cur,
+                     data_signal = train_sig,
+                     roc1 = 3,
+                     roc2 = 6,
+                     alpha = 0.5,
+                     beta = 0.5)
+
+
+out <- expand.grid(
+  roc1 = seq(from = 2, to = 4, by = 1),
+  roc2 = seq(from = 5, to = 10, by = 1),
+  alpha = seq(from =.2, to = .8, by = 0.2),
+  beta = seq(from =.2, to = .8, by = 0.2)) %>% 
+  mutate(adj_alpha = alpha / (alpha + beta),
+         adj_beta = beta / (alpha + beta)) %>%
+  distinct(adj_alpha, adj_beta, roc1, roc2) %>% 
+  rename(alpha = adj_alpha, beta = adj_beta)
+  
+# system.time({ <expression> })
+library(foreach)
+library(doParallel)
+# Detect the number of cores on your computer
+n_cores <- detectCores() - 1
+# Assign cores and register the cluster
+cl <- makeCluster(n_cores)
+registerDoParallel(cl)
+# Loop using multipe clusters
+res <- foreach(
+  i = 1:nrow(out),
+  .combine = "cbind",
+  .packages = c(
+    "tidyverse",
+    "RTL",
+    "timetk",
+    "tidyquant",
+    "PerformanceAnalytics"
+  )
+) %dopar% {
+  as.numeric(RTL::tradeStats(
+    strategy(data_curr = train_cur,
+             data_signal = train_sig,
+             out[i, "roc1"],
+             out[i, "roc2"],
+             out[i, "alpha"],
+             out[i, "beta"])%>% dplyr::select(date, ret)
+  ))
+}
+stopCluster(cl)
+
+
+check <- strategy(data_curr = train_cur,
+                     data_signal = train_sig,
+                     roc1 = 3,
+                     roc2 = 6,
+                     alpha = 0.5,
+                     beta = 0.5)
+
+
+# Create tibble of results
+res <- tibble::as_tibble(t(res))
+colnames(res) <- names(RTL::tradeStats(x = check %>% dplyr::select(date,ret)))
+out <- cbind(out, res)
+out_safe <- out
+
+
+
+tenprct <- out %>% 
+  mutate(n = ntile(`DD.Length`, 10)) %>% 
+  group_by(n) %>% 
+  summarise(max(`DD.Length`))
+
+#764
+
+tenprct <- out %>% 
+  mutate(n = ntile(Omega, 5)) %>% 
+  group_by(n) %>% 
+  summarise(min(Omega))
+
+#0.1476
+
+
+out %>% 
+  filter(Omega > 0.1476,
+         `DD.Length` < 764) %>% 
+  arrange(desc(CumReturn)) %>% 
+  transmute(alpha, beta, roc1, roc2, CumReturn)%>% 
+  kable(caption = "Risk Appetite-Based Selection")
+
+out %>%
+  select(-alpha, -beta) %>% 
+  tidyr::pivot_longer(
+    cols = -c(roc1, roc2),
+    names_to = "variable",
+    values_to = "value"
+  ) %>%
+  dplyr::group_by(variable) %>%
+  dplyr::mutate(valueZ = (value - mean(value)) / sd(value)) %>%
+  ggplot(aes(x = roc1, y = roc2)) +
+  geom_raster(aes(fill = valueZ), interpolate = TRUE) +
+  facet_wrap( ~ variable, scales = "free") +
+  scale_fill_gradient2(
+    low = 'forestgreen',
+    mid = "white",
+    high = "steelblue",
+    midpoint = 0
+  ) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.background = element_rect(fill = "white")
+  ) +
+  labs(title = "Optimization Result",
+       subtitle = "Z-scores Utilized")
+
+
+
+
+out %>%
+  select(-roc1, -roc2) %>% 
+  tidyr::pivot_longer(
+    cols = -c(alpha, beta),
+    names_to = "variable",
+    values_to = "value"
+  ) %>%
+  dplyr::group_by(variable) %>%
+  dplyr::mutate(valueZ = (value - mean(value)) / sd(value)) %>%
+  ggplot(aes(x = alpha, y = beta)) +
+  geom_raster(aes(fill = valueZ), interpolate = TRUE) +
+  facet_wrap( ~ variable, scales = "free") +
+  scale_fill_gradient2(
+    low = "orange",
+    mid = "grey",
+    high = "red2",
+    midpoint = 0
+  ) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.background = element_rect(fill = "white")
+  ) 
+
+```
+
+-   Optimization results suggest that during the training set, smaller values for both the short and longer term ROC are favorable
+
+-   Returns and risk both seem to benefit from non-extreme alpha and beta values, suggesting the inclusion of two Rates of Change is of benefit to the model
+
+-   Fluctuation in variance of annual returns are relatively small, with returns driving larger risk-to-return differences
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.keep='last'}
+
+train <- strategy(data_curr = train_cur,
+                     data_signal = train_sig,
+                     roc1 = 2,
+                     roc2 = 6,
+                     alpha = 0.3333333,
+                     beta = 	0.6666667)
+
+
+
+
+tmp <- train %>% timetk::tk_xts(date_var = date)
+plot(tmp$Close, main = "Train Results")
+xts::addSeries(
+  tmp$trade,
+  main = "Trades",
+  on = NA,
+  type = "h",
+  col = "steelblue",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$pos,
+  main = "Positions",
+  on = NA,
+  type = "h",
+  col = "steelblue",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$SlopeCoef,
+  main = "SlopeCoef",
+  on = NA,
+  type = "l",
+  col = "steelblue",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$ROC,
+  main = "ROC",
+  on = NA,
+  type = "l",
+  col = "steelblue",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$cumeq,
+  main = "CumEQ",
+  on = NA,
+  type = "l",
+  col = "steelblue",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+
+
+```
+
+-   Extended out-of-market periods frequently occured based upon the rolling correlation signal
+
+    -   These extended periods of disconnects are suprising, particularly before 2016 when the static relationship weaken
+
+-   Periods of increases currency exchange rate volatility are typically accompanied by increases the USO ROC measure
+
+    -   Unsurprising, given the economic foundations of the relationship
+
+-   Cumulative returns are poor considering risk; possible explanations include:
+
+    -   In its current form, the model fails to fully capture the price-impact crude prices have on the USD/CAD exchange rate
+
+    -   Crude prices are effectively priced in to USD/CAD rates on an intra-day horizon
+
+## Testing Period
+
+```{r, fig.keep='last', echo=FALSE, message=FALSE, warning=FALSE}
+
+
+dat_cur <- dat_cur %>% 
+  filter(date >= '2019-01-01')
+dat_signal_pull <- dat_signal_pull %>% 
+   filter(date >= '2019-01-01')
+
+
+backtest <- strategy(data_curr = dat_cur,
+                     data_signal = dat_signal_pull,
+                     roc1 = 2,
+                     roc2 = 6,
+                     alpha = 0.3333333,
+                     beta = 0.6666667	) %>% 
+  drop_na()
+
+
+tmp <- backtest %>% timetk::tk_xts(date_var = date)
+plot(tmp$Close, main = "Test Results")
+xts::addSeries(
+  tmp$trade,
+  main = "Trades",
+  on = NA,
+  type = "h",
+  col = "red4",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$pos,
+  main = "Positions",
+  on = NA,
+  type = "h",
+  col = "red4",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$SlopeCoef,
+  main = "SlopeCoef",
+  on = NA,
+  type = "l",
+  col = "red4",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$ROC,
+  main = "ROC",
+  on = NA,
+  type = "l",
+  col = "red4",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+xts::addSeries(
+  tmp$cumeq,
+  main = "CumEQ",
+  on = NA,
+  type = "l",
+  col = "red4",
+  lty = 1,
+  lwd = 1,
+  pch = 0
+)
+
+
+
+#inmark <- backtest %>% 
+ # mutate(inmark = case_when(pos != 0 ~ 1,
+   #                         TRUE ~ 0)) %>% 
+ # summarise(mean(inmark))
+         
+
+```
+
+-   Returns were strong though COVID volatility
+
+    -   Aligns patterns obeserved within the training set
+
+    -   Suggests that some variation of this trading model may provide utlity in higher volatility periods
+
+-   In-market percent was relatively unchanged from train period
+
+    -   Does not align with general sentiment, and statistical measures suggesting the CAD has somewaht disconnected from crude prices in recent time
+
+        -   Possibly indicative of a model failure
+
+## Limitations & Learnings
+
+#### Limitations
+
+-   As it stands, the model fails to consider transaction costs
+
+-   A historical-looking non-lagged rolling regression is an imperfect measure to capture whether or not pricing dynamics that the model seeks to capitalize on are occurring
+
+    -   Simply lagging USO returns a day does not solve the issue, given the 2 and 6 day ROC window
+
+    -   Further statistical testing/modelling is required to find more optimal metric to generate a no trade/exit signal
+
+-   Ideally position size would also be a function of the strength of the relationship between USO and USD/CAD prices at any given time
+
+#### Learnings
+
+-   Data frequency and timeliness significantly limit the development of trading models that rely on non-financial market data sources
+-   Established and understood causal relationships are, unsurprisingly, challenging to profit from
+-   Attempting to leverage statistical measures in an applied setting where ones understanding is tested through a metric such as P&L is good at highlighting knowledge gaps
