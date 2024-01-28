@@ -3,7 +3,7 @@ title: "Quantative Trading Framework: USD/CAD Exchange Rate & Crude Price"
 editor: visual
 format:
   html:
-    embed-resources: true
+    self-contained: true
 ---
 
 #### Luke Talman
