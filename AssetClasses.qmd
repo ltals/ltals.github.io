@@ -1,0 +1,188 @@
+---
+title: "Asset Classes"
+editor: visual
+date: "2023-02-28"
+---
+
+```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
+library(RTLedu)
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(moments)
+library(GGally)
+library(slider)
+library(stats)
+library(knitr)
+library(kableExtra) 
+library(stringr)
+library(ggthemes)
+library(scales)
+library(corrplot)
+
+#RTLedu::assetClass()
+#RTLedu::toyz
+
+
+tkr <- c("TLT", "USO", "GLD", "VNQ", "SPY")
+
+df <- tkr %>%
+  tidyquant::tq_get(get = "stock.prices", from = "2014-01-01", to  = "2023-01-31")
+
+ret_working_long <- df %>% dplyr::transmute(date, ticker = symbol, adj_v = adjusted) %>% dplyr::group_by(ticker) %>%dplyr::mutate(ret = log(adj_v/dplyr::lag(adj_v))) %>% tidyr::drop_na() 
+
+ret_working <- ret_working_long %>% tidyr::pivot_wider(names_from = ticker, values_from = ret, date) %>% dplyr::rename(ret_tlt = TLT, ret_uso = USO, ret_gld = GLD, ret_vnq = VNQ, ret_spy = SPY)
+```
+
+# Returns by Asset Class
+
+## Summary of Analysis
+
+Following is a summary of the analysis on select asset class returns on the NYSE and NASDAQ, the two largest stock exchanges globally. Representing returns for each asset class is a specific Exchange Traded Fund (ETF) that allows investors to gain exposure to various asset prices without physically possessing underlying asset.
+
+-   Analysed asset classes: Gold via the SPDR Gold Trust (Ticker: GLD), US equities via the SPDR S&P 500 ETF Trust (Ticker: SPY), Energy Liquids via the United States Oil ETF (Ticker: USO), US Long Term bonds via the iShares 20+ Year Treasury Bond ETF (Ticker: TLT), and Real Estate via the Vanguard Real Estate Index Fund (Ticker: VNQ).
+
+### Analysis Window: 2014/01/01 - 2023/01/31
+
+-   All included asset classes had negatively skewed logarithmic returns.
+
+    -   Extreme negative returns were more frequently observed than extreme positive returns across all asset classes.
+
+    -   Real Estate had the largest negative skew.
+
+-   US equities generated the highest mean daily return, and Energy Liquids generated the lowest, with daily average returns of 0.0416% and -0.0609%, respectively.
+
+-   Gold returns had the lowest volatility of the compared asset classes, and Energy Liquids had the highest.
+
+-   US equities and Real Estate prices had the strongest positive correlation, with a correlation coefficient of 0.44.
+
+    -   US Equities and Real Estate prices tended to move in the same direction, whether that be positive or negative.
+
+-   Energy Liquid and Gold prices were positively correlated at an abnormally high level in 2022.
+
+    -   Possibly related to high inflation in 2022 that was in part driven by high energy prices.
+
+-   Asset returns were not normally distributed.
+
+    -   Returns were not symmetric about the mean, and differed from a bell curve distribution.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE,out.width="50%"}
+#stepped
+fig1 <- ret_working %>% ggplot2::ggplot(aes(x = ret_tlt, y = stat(width * density))) + geom_step(aes(col = "TLT"), stat = "bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_uso, col = "USO"), stat="bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_gld, col = "GLD"), stat="bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_vnq, col = "VNQ"), stat="bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_spy, col = "SPY"), stat="bin", bins = 200, alpha = .6)  + theme(panel.background = element_rect(fill='transparent'), plot.background = element_rect(fill='transparent', color=NA), panel.grid.major = element_line(linewidth = 0.25, linetype = 'solid',colour = "grey")) + theme(legend.position=c(.2,.75), legend.key.height=unit(.2, "cm"), legend.key.width=unit(.2, "cm"), legend.title = element_text(size=13), legend.text = element_text(size=11), plot.title = element_text(size=15, face = "bold")) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + scale_x_continuous(labels = scales::percent_format(accuracy = 1)) + labs(col = "Ticker", y = "Frequency", x = "Daily Return", title = "Logarthmic Returns Density - All Assets")
+fig1 
+
+
+ret_working_long %>% ggplot(aes(x = ret, col = ticker, fill = ticker)) + geom_histogram(aes(y = stat(width * density)), bins = 200, show.legend = FALSE) + geom_rug(col = "black") + facet_grid(ticker ~ .) + ggthemes::theme_few() + theme(panel.spacing.y  = unit(.75, "lines")) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + scale_x_continuous(labels = scales::percent_format(accuracy = 1)) + labs(col = "Ticker", y = "Frequency", x = "Daily Return", title = "Logarthmic Returns Density - By Assets") + theme( plot.title = element_text(size=15, face = "bold"), axis.title.y=element_blank())
+                                                                                                                                                                                                                                        
+```
+
+<br>
+
+Together, these histograms provide a visual representation of the distribution of returns for the asset classes within the analysis. This distribution provides insights as to how frequent and extreme outlier (or anomalous) returns are within each asset class.
+
+<br>
+
+Energy Liquids had comparatively large outlier returns, suggesting that a risk-averse individual would prefer to invest in other asset classes with less extreme outliers, such as US Long Term bonds or Gold. Investing in asset classes that are historically less prone to large movements, both individually or with the market as a whole, reduces the risk of extreme portfolio losses.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tab1 <- ret_working_long %>% dplyr::group_by(ticker) %>% dplyr::summarize(Mean = mean(ret), Std.Dev = sd(ret), Skewness = moments::skewness(ret), Kurtosis = moments::kurtosis(ret)) %>% dplyr::rename(Ticker = ticker) %>% dplyr::mutate(Mean = sprintf("%1.6f%%", 100*Mean)) %>% dplyr::mutate(Std.Dev = sprintf("%1.6f%%", 100*Std.Dev)) %>% kableExtra::kable() %>% kableExtra::kable_material(c("striped", "hover"))
+
+tab1
+
+```
+
+<br>
+
+Complementing the above visualizations, these table provide numeric representations as to the frequency (kurtosis) and general direction (skewness) of outlier returns within each asset class. A large kurtosis value indicates that the asset class had more extreme returns, and the skewness value indicates the general direction of these extreme returns (positive or negative). Real Estate had the largest kurtosis and negative skew of the compared assets, and with Energy Liquids generating the second largest statistic in both.
+
+<br>
+
+Also included in the table is the mean daily return across the analysis, as well as the standard deviation of returns. These both provide a long term view on asset performance, with mean highlighting average returns, and standard deviation highlighting the relative volatility of each asset class. Gold returns had the lowest volatility within the analysis, and Energy Liquids had the largest. These observed statistics are in keeping with the past underlying price trends of either asset, with energy revenues traditionally being more cyclical and subject to prevailing oil prices, and gold representing an asset that reduces investors exposure to market cycles.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
+library(GGally)
+
+
+
+#fig3.1 <- ret_working %>% dplyr::select(-date) %>% GGally::ggpairs(columnLabels = c('TLT', 'USO', 'GLD', "VNQ", "SPY"), color = "steelblue") + theme(plot.subtitle = element_text(size = 10, colour="steelblue"))
+#fig3.1 
+
+
+ret_less_date <- ret_working %>% dplyr::select(-date) %>% dplyr::rename(TLT= ret_tlt, USO = ret_uso, GLD = ret_gld, VNQ = ret_vnq, SPY = ret_spy)
+
+
+corrplot::corrplot.mixed(stats::cor(ret_less_date, method = "kendall"), title = "Correlation Matrix", upper = "number", lower = "square", tl.pos = 'd', tl.col="black", tl.srt=45, addCoef.col = 'grey20', mar=c(0,0,2,0))
+
+
+
+#corrplot::corrplot(stats::cor(ret_less_date, method = "kendall"), method = "number", type = "upper",tl.col="grey30", tl.srt=45, addCoef.col = 'grey30')
+
+
+```
+
+<br>
+
+This correlation matrix provides correlation coefficients for the asset classes within the analysis, indicating the strength and direction of the linear relationship between each asset class. A correlation of +1 describes a perfect positive relationship, where the increase in one asset price has exact proportional increase in the other asset price.
+
+<br>
+
+These correlations can be used to inform investment decisions such as an investor wanting to diversify a large position or speculate on the decline of specific asset class. The -0.18 correlation between US securities and Long Term US bonds highlighted the ability for fixed income securities to offset price movements in the equity market, explaining why some fund manager maintain a specific percent exposure to either asset class. Another notable takeaway is the relatively high correlation of 0.44 between Real Estate and US equities, given that many retail investors largest exposure is Real Estate via home ownership, but yet they continue to primarily invest in equities. This behavior means that some retail investors would see larger diversification benefits if they invested in other asset classes.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
+RollCor <- ret_working %>% dplyr::mutate(cor25 = slider::pslide_dbl(.l = list(ret_uso, ret_gld), .f = ~ cor(.x, .y),.before = 25,.after = 0, .complete = TRUE)) %>% dplyr::mutate(cor75 = slider::pslide_dbl(.l = list(ret_uso, ret_gld), .f = ~ cor(.x, .y), .before = 75, .after = 0, .complete = TRUE)) %>% tidyr::drop_na() %>% dplyr::mutate(cor252 = slider::pslide_dbl(.l = list(ret_uso, ret_gld), .f = ~ cor(.x, .y), .before = 252, .after = 0, .complete = TRUE)) %>% tidyr::drop_na() %>% dplyr::select(-ret_tlt, -ret_uso, -ret_gld, -ret_vnq, -ret_spy)
+
+
+
+figRoll <- RollCor %>% ggplot(aes(x = date, y = cor25, col = "25 Days")) + geom_line() + geom_line(aes(x = date, y = cor75, col = "75 Days")) + geom_line(aes(x = date, y = cor252, col = "252 Days")) + labs(col = "Window", y = "Correlation", title = "Rolling Correlation - USO and GLD") + theme(panel.background = element_rect(fill='transparent'), plot.background = element_rect(fill='transparent', color=NA), panel.grid.major = element_line(linewidth = 0.25, linetype = 'solid',colour = "grey"), axis.title.x = element_blank()) + theme(legend.position=c(.9,.2), legend.key.height=unit(.2, "cm"), legend.key.width=unit(.2, "cm"), legend.title = element_text(size=13), legend.text = element_text(size=11), plot.title = element_text(face = "bold")) + scale_x_date(date_breaks = "2 year", date_labels =  "%Y") 
+
+
+figRoll
+
+
+#figRoll_int <- plot_ly(RollCor, x = ~date, y = ~cor25, name = "25 Days", type = "scatter", mode = "lines") %>% add_trace(y = ~cor75, name = "75 Days", mode = "lines") %>% layout(legend = list(x = 0.1, y = 0.92))
+
+
+```
+
+<br>
+
+As highlighted by the correlation coefficient of 0.05 in the matrix and overall unpredictability across the analysis window, Energy Liquids and Gold prices typically don't have a strong consistent correlation, positive or negative. Interestingly, this trend seems to have changed in 2022, with Energy Liquids and Gold appearing to show a strong positive correlation over the rolling windows. A possible explanation for this recent change is the high inflation observed in 2022 that was partially driven by high energy prices. These high energy prices increased the revenues for many energy producers, while simultaneously, investors 'fled' to gold as an asset reduce exposure to inflation.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+jb <- ret_working_long %>% group_by(ticker) %>%  dplyr::do(broom::tidy(tseries::jarque.bera.test(.$ret))) %>% dplyr::rename(Ticker = ticker, Statistic = statistic, P.Value = p.value, Method = method) %>% dplyr::select(-parameter) %>%  kableExtra::kable() %>% kableExtra::kable_material(c("striped", "hover"))
+
+jbT <- tseries::jarque.bera.test(ret_working$ret_vnq)
+#84745
+
+jb
+```
+
+<br>
+
+The Jarque Bera Test measures whether sample data has skewness and kurtosis matching that of a normal distribution. Unsurprisingly, given the negative skewness and large kurtosis, none of the analysed asset returns matched a normal distribution in the test. This has implications for the discussed increased probability of extreme price changes, as well as the reduced practical effectiveness of certain asset pricing models that assume logarithmic asset returns are normally distributed.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+KSspy <- broom::tidy(stats::ks.test(ret_working$ret_spy, y = "pnorm")) %>% dplyr::mutate(across('method', str_replace, 'test', 'Test')) %>% dplyr::rename( Statistic = statistic, P.Value = p.value, Method = method, Alternative = alternative) %>% dplyr::mutate(Ticker = c("SPY"), .before = Statistic) %>% kableExtra::kable() %>% kableExtra::kable_material(c())
+
+KSspy
+
+
+
+```
+
+<br>
+
+Complementing the Jarque Bera Test, the Kolmogorov-Smirnov Test measures the probability of whether or not a sample (in this case, US equities) has normally distributed returns. The test failed to find a significant statistic, meaning that equity returns were not normally distributed in the analysis window. Again, this has implications for pricing models that assume logarithmic equity returns are normally distributed.
