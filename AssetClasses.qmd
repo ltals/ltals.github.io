@@ -1,9 +1,9 @@
 ---
-title: "Asset Classes"
+title: "Return Properties by Asset Class"
 editor: visual
-date: "2023-02-28"
 ---
-
+#### Luke Talman
+#### 2023-02-28
 ```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
 library(RTLedu)
 library(tidyverse)
@@ -19,6 +19,7 @@ library(stringr)
 library(ggthemes)
 library(scales)
 library(corrplot)
+library(patchwork)
 
 #RTLedu::assetClass()
 #RTLedu::toyz
@@ -33,8 +34,6 @@ ret_working_long <- df %>% dplyr::transmute(date, ticker = symbol, adj_v = adjus
 
 ret_working <- ret_working_long %>% tidyr::pivot_wider(names_from = ticker, values_from = ret, date) %>% dplyr::rename(ret_tlt = TLT, ret_uso = USO, ret_gld = GLD, ret_vnq = VNQ, ret_spy = SPY)
 ```
-
-# Returns by Asset Class
 
 ## Summary of Analysis
 
@@ -68,13 +67,14 @@ Following is a summary of the analysis on select asset class returns on the NYSE
 
 <br>
 
-```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE,out.width="50%"}
+```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
 #stepped
 fig1 <- ret_working %>% ggplot2::ggplot(aes(x = ret_tlt, y = stat(width * density))) + geom_step(aes(col = "TLT"), stat = "bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_uso, col = "USO"), stat="bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_gld, col = "GLD"), stat="bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_vnq, col = "VNQ"), stat="bin", bins = 200, alpha = .6) + geom_step(aes(x = ret_spy, col = "SPY"), stat="bin", bins = 200, alpha = .6)  + theme(panel.background = element_rect(fill='transparent'), plot.background = element_rect(fill='transparent', color=NA), panel.grid.major = element_line(linewidth = 0.25, linetype = 'solid',colour = "grey")) + theme(legend.position=c(.2,.75), legend.key.height=unit(.2, "cm"), legend.key.width=unit(.2, "cm"), legend.title = element_text(size=13), legend.text = element_text(size=11), plot.title = element_text(size=15, face = "bold")) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + scale_x_continuous(labels = scales::percent_format(accuracy = 1)) + labs(col = "Ticker", y = "Frequency", x = "Daily Return", title = "Logarthmic Returns Density - All Assets")
-fig1 
 
 
-ret_working_long %>% ggplot(aes(x = ret, col = ticker, fill = ticker)) + geom_histogram(aes(y = stat(width * density)), bins = 200, show.legend = FALSE) + geom_rug(col = "black") + facet_grid(ticker ~ .) + ggthemes::theme_few() + theme(panel.spacing.y  = unit(.75, "lines")) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + scale_x_continuous(labels = scales::percent_format(accuracy = 1)) + labs(col = "Ticker", y = "Frequency", x = "Daily Return", title = "Logarthmic Returns Density - By Assets") + theme( plot.title = element_text(size=15, face = "bold"), axis.title.y=element_blank())
+fig1point2 <- ret_working_long %>% ggplot(aes(x = ret, col = ticker, fill = ticker)) + geom_histogram(aes(y = stat(width * density)), bins = 200, show.legend = FALSE) + geom_rug(col = "black") + facet_grid(ticker ~ .) + ggthemes::theme_few() + theme(panel.spacing.y  = unit(.75, "lines")) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + scale_x_continuous(labels = scales::percent_format(accuracy = 1)) + labs(col = "Ticker", y = "Frequency", x = "Daily Return", title = "Logarthmic Returns Density - By Assets") + theme( plot.title = element_text(size=15, face = "bold"), axis.title.y=element_blank())
+
+fig1|fig1point2
                                                                                                                                                                                                                                         
 ```
 
@@ -175,7 +175,11 @@ The Jarque Bera Test measures whether sample data has skewness and kurtosis matc
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
-KSspy <- broom::tidy(stats::ks.test(ret_working$ret_spy, y = "pnorm")) %>% dplyr::mutate(across('method', str_replace, 'test', 'Test')) %>% dplyr::rename( Statistic = statistic, P.Value = p.value, Method = method, Alternative = alternative) %>% dplyr::mutate(Ticker = c("SPY"), .before = Statistic) %>% kableExtra::kable() %>% kableExtra::kable_material(c())
+KSspy <- broom::tidy(stats::ks.test(ret_working$ret_spy, y = "pnorm")) %>%
+  dplyr::mutate(across('method', str_replace, 'test', 'Test')) %>% dplyr::rename( Statistic = statistic, P.Value = p.value, Method = method, Alternative = alternative) %>% 
+  select(-Method, -Alternative) %>% 
+  dplyr::mutate(Ticker = c("SPY"), .before = Statistic) %>% kableExtra::kable() %>%
+  kableExtra::kable_material(c())
 
 KSspy
 
