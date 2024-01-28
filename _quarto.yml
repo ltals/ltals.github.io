@@ -8,7 +8,13 @@ website:
     left:
       - href: index.qmd
         text: Home
-
+      - href: usdcad_uso.qmd
+        text: "USD/CAD USO Quant Model"
+      - href: RBOB.qmd
+        text: "RBOB Trading"
+      - href: AssetClasses.qmd
+        text: "Asset Classes"
+        
 format:
   html:
     theme: Litera

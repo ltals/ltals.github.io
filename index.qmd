@@ -1,18 +1,21 @@
 ---
 title: "Welcome to my Github"
+format: 
+  html:
+    includes:
+      in-header: |
+        <style>
+          .title { 
+            text-align: center; 
+          }
+        </style>
 ---
 
-<img src="pfp.JPG" width="145.3465" height="160">
-
+<img src="pfp.JPG" width="145.3465" height="160" fig-align="center">
 
 I'm Fourth-year Finance Honors and Accounting student the University of Alberta with a strong interest in commodity and securities trading, risk management, consumer credit & economics.
 
 On this webpage you'll find a series of projects I've completed; topics range from algorithmic trading models to economic analyses in the consumer credit space. This site is intended to serve as a platform to highlight topics I find interesting through the application of data science skills I've acquired as a student and Analyst at Trust Science.
-
-Project:
-
-<div><a href="usdcad_uso.qmd">Quantitative Trading Framework: USD/CAD Exchange Rate & Crude Price</a></div>
-<div><a href="RBOB.qmd">RBOB Trading Simulation Supporting Doc</a></div>
 
 
 
