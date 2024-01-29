@@ -1,5 +1,5 @@
 ---
-title: 'Welcome to my Website'
+title: 'Welcome to my GitHub Portfolio'
 editor: visual
 format: html
 ---
@@ -12,7 +12,6 @@ text-align: center;
 }
 
 </style>
-
 ```
 ::: {style="text-align: center;"}
 <img src="pfp.JPG" width="145.3465" height="160"/>
@@ -74,5 +73,4 @@ On this webpage you'll find a series of projects I've completed; topics currentl
 
 </body>
 </html>
-
 ```

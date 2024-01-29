@@ -40,7 +40,7 @@ ret_working <- ret_working_long %>% tidyr::pivot_wider(names_from = ticker, valu
 
 ## Preface
 
-This document was a class deliverable from Fin 450: Applied Data Science 1 at the University of Alberta. The project intended to provide an introduction to the analytical capabilities of R in a financial context through the comparison of return properties of different asset classes.
+This document was a class deliverable for Fin 450: Applied Data Science 1 at the University of Alberta. The project intended to provide an introduction to the analytical capabilities of R in a financial context through the comparison of return properties of different asset classes.
 
 ## Summary of Analysis
 
