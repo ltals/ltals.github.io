@@ -1,1 +1,12 @@
 /* css styles */
+/* Targeting the entire navbar */
+
+
+#quarto-header nav a.active {
+    color: #009bb3; /* Active item color */
+}
+
+/* Changing color on hover */
+#quarto-header nav a:hover {
+    color: #80888a; /* Color change on hover */
+}

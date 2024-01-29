@@ -1,5 +1,5 @@
 ---
-title: 'Welcome to my Github'
+title: 'Welcome to my Website'
 editor: visual
 format: html
 ---
@@ -53,7 +53,7 @@ On this webpage you'll find a series of projects I've completed; topics currentl
         }
 
         .contact-link:hover, .contact-link:focus {
-            color: #00ffff;
+            color: #80888a;
             text-decoration: none;
         }
     </style>
