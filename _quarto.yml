@@ -10,6 +10,8 @@ website:
         text: Home
       - href: usdcad_uso.qmd
         text: "USD/CAD USO Quant Model"
+      - href: https://talman.shinyapps.io/ABpowerGeneration/
+        text: "AB Power Generation"
       - href: RBOB.qmd
         text: "RBOB Trading"
       - href: AssetClasses.qmd
