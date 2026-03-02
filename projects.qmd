@@ -26,6 +26,6 @@ format:
 
 ### [Petrocurrency: USD/CAD FX-rates and Crude Price](projDir/QTP_usdcad.html){target="_blank"}
 
-### [New South Wales: Eletricity Price Forecasting & Battery Arbitrage](projDir/batteryTradingNSW.html){target="_blank"}
+### [New South Wales: Eletricity Price Forecasting & Battery Arbitrage](https://batterytradingnsw.netlify.app){target="_blank"}
 
 ### [Employee Sentiment (NLP) & Alpha in the Oil Sector](projDir/GDNLP.html){target="_blank"}

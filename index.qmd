@@ -15,7 +15,7 @@ text-align: center;
 ```
 
 ::: {style="text-align: center;"}
-<img src="projDir/pfp.jpeg" width="175.8964" height="220"/>
+<img src="docs/projDir/pfp.jpeg" width="175.8964" height="220"/>
 :::
 
 I am an recent Honors Finance graduate from the University of Alberta, currently working as an Analyst in the Data & Analytics department at Trust Science. My professional and academic interests lie at the intersection of economic theory, financial modeling, and applied data science.
