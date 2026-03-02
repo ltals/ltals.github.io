@@ -67,7 +67,7 @@
     "href": "index.html",
     "title": "Welcome to my GitHub Portfolio",
     "section": "",
-    "text": "I’m a Fourth-year Finance Honors and Accounting student the University of Alberta with a strong interest in trading, risk management and economics.\nOn this webpage you’ll find a series of projects I’ve completed; topics currently range from algorithmic trading models to supply-demanded based commodity analysis, with plans to develop both the scope and complexity of published content in the near term. This site is intended to highlight topics I find interesting through the application of data science skills I’ve acquired as a student and analyst at Trust Science.\n\n\n\n    Contact Me\n    \n    \n\n\n\n\n    \n         LinkedIn\n    \n    \n         Email\n    \n    \n         GitHub"
+    "text": "I am an recent Honors Finance graduate from the University of Alberta, currently working as an Analyst in the Data & Analytics department at Trust Science. My professional and academic interests lie at the intersection of economic theory, financial modeling, and applied data science. My work in the credit industry centers around facilitating the implementation of Trust Sciences various lending products in Canada and the U.S. Using quantitative methods, I create lending strategies, monitor loan portfolio performance and economic trends, and contribute to the ongoing development of our products.\nThis website serves as a portfolio of my independent research.\n\n\n\n    Contact Me\n    \n    \n\n\n\n\n    \n         LinkedIn\n    \n    \n    \n         Email\n    \n    \n    \n         GitHub"
   },
   {
     "objectID": "RBOB.html",
@@ -131,5 +131,61 @@
     "title": "Return Properties by Asset Class",
     "section": "Preface",
     "text": "Preface\nThis document was a class deliverable for Fin 450: Applied Data Science 1 at the University of Alberta. The project intended to provide an introduction to the analytical capabilities of R in a financial context through the comparison of return properties of different asset classes."
+  },
+  {
+    "objectID": "projects.html",
+    "href": "projects.html",
+    "title": "Project Portfolio",
+    "section": "",
+    "text": "An end-to-end monitoring tool for the Alberta electric system. It visualizes real-time generation mix, demand fluctuations, and pricing volatility. Tech Stack: R, Shiny, Tidyverse, Plotly.\n\n\n\nThe Blurb: A geospatial risk-tracking tool designed to identify and visualize environmental compliance patterns and well-integrity issues across provincial energy assets. Tech: ``"
+  },
+  {
+    "objectID": "projects.html#quantitative-models",
+    "href": "projects.html#quantitative-models",
+    "title": "Projects",
+    "section": "",
+    "text": "#- [USD/CAD & USO Quant Model] #- [RBOB Trading] #- [Asset Classes] ## Shiny Apps"
+  },
+  {
+    "objectID": "projects.html#ab-power-generation-dashboard",
+    "href": "projects.html#ab-power-generation-dashboard",
+    "title": "Projects",
+    "section": "#- AB Power Generation Dashboard",
+    "text": "#- AB Power Generation Dashboard"
+  },
+  {
+    "objectID": "projects.html#shiny-apps",
+    "href": "projects.html#shiny-apps",
+    "title": "Project Portfolio",
+    "section": "",
+    "text": "An end-to-end monitoring tool for the Alberta electric system. It visualizes real-time generation mix, demand fluctuations, and pricing volatility. Tech Stack: R, Shiny, Tidyverse, Plotly.\n\n\n\nThe Blurb: A geospatial risk-tracking tool designed to identify and visualize environmental compliance patterns and well-integrity issues across provincial energy assets. Tech: ``"
+  },
+  {
+    "objectID": "projects.html#quantitative-trading",
+    "href": "projects.html#quantitative-trading",
+    "title": "Projects",
+    "section": "Quantitative Trading",
+    "text": "Quantitative Trading\n\nUSD/CAD Exchange Rate & Crude Price: Trading Framework\nNew South Wales Electricity Trading\nEmployee Sentiment (GlassDoor & NLP) & Returns in the Oil Sector"
+  },
+  {
+    "objectID": "projects.html#interactive-dashboards-rshiny",
+    "href": "projects.html#interactive-dashboards-rshiny",
+    "title": "Project Portfolio",
+    "section": "",
+    "text": "Bridging complex datasets with stakeholder-ready visualization tools.\n\n\n\nThe Blurb: An end-to-end monitoring tool for the Alberta electric system. It visualizes real-time generation mix, demand fluctuations, and pricing volatility. Tech Stack: R, Shiny, Tidyverse, Plotly.\n\n\n\nThe Blurb: A geospatial risk-tracking tool designed to identify and visualize environmental compliance patterns and well-integrity issues across provincial energy assets. Tech Stack: R, Leaflet, Shiny, GGDrive API."
+  },
+  {
+    "objectID": "projects.html#quantitative-research-trading",
+    "href": "projects.html#quantitative-research-trading",
+    "title": "Project Portfolio",
+    "section": " Quantitative Research & Trading",
+    "text": "Quantitative Research & Trading\n\nPetrocurrency: USD/CAD FX-rates and Crude Price\n\n\nNew South Wales: Eletricity Price Forecasting & Battery Arbitrage\n\n\nEmployee Sentiment (NLP) & Alpha in the Oil Sector"
+  },
+  {
+    "objectID": "projects.html#dashboards-r-shiny",
+    "href": "projects.html#dashboards-r-shiny",
+    "title": "Project Portfolio",
+    "section": "",
+    "text": "The Blurb: An end-to-end monitoring tool for the Alberta electric system. It visualizes real-time generation mix, demand fluctuations, and pricing volatility. Tech Stack: R, Shiny, Tidyverse, Plotly.\n\n\n\nThe Blurb: A geospatial risk-tracking tool designed to identify and visualize environmental compliance patterns and well-integrity issues across provincial energy assets. Tech Stack: R, Leaflet, Shiny, GGDrive API."
   }
 ]

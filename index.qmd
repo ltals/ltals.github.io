@@ -13,13 +13,15 @@ text-align: center;
 
 </style>
 ```
+
 ::: {style="text-align: center;"}
-<img src="pfp.JPG" width="145.3465" height="160"/>
+<img src="projDir/pfp.jpeg" width="175.8964" height="220"/>
 :::
 
-I'm a Fourth-year Finance Honors and Accounting student the University of Alberta with a strong interest in trading, risk management and economics.
+I am an recent Honors Finance graduate from the University of Alberta, currently working as an Analyst in the Data & Analytics department at Trust Science. My professional and academic interests lie at the intersection of economic theory, financial modeling, and applied data science.
+My work in the credit industry centers around facilitating the implementation of Trust Sciences various lending products in Canada and the U.S. Using quantitative methods, I create lending strategies, monitor loan portfolio performance and economic trends, and contribute to the ongoing development of our products.
 
-On this webpage you'll find a series of projects I've completed; topics currently range from algorithmic trading models to supply-demanded based commodity analysis, with plans to develop both the scope and complexity of published content in the near term. This site is intended to highlight topics I find interesting through the application of data science skills I've acquired as a student and analyst at Trust Science.
+This website serves as a portfolio of my independent research.
 
 ```{=html}
 <!DOCTYPE html>
@@ -60,13 +62,15 @@ On this webpage you'll find a series of projects I've completed; topics currentl
 <body>
 
 <div class="contact-links">
-    <a class="contact-link" href="https://www.linkedin.com/in/luketalman/">
+    <a class="contact-link" href="https://www.linkedin.com/in/luketalman/" target="_blank" rel="noopener noreferrer">
         <i class="fa-brands fa-linkedin"></i> LinkedIn
     </a>
+    
     <a class="contact-link" href="mailto:talman@ualberta.ca">
         <i class="fa-solid fa-envelope"></i> Email
     </a>
-    <a class="contact-link" href="https://github.com/ltals">
+    
+    <a class="contact-link" href="https://github.com/ltals" target="_blank" rel="noopener noreferrer">
         <i class="fa-brands fa-github"></i> GitHub
     </a>
 </div>

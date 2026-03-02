@@ -1,0 +1,31 @@
+---
+title: "Project Portfolio"
+format: 
+  html:
+    page-layout: full
+    toc: true
+---
+
+## <img src="https://raw.githubusercontent.com/rstudio/hex-stickers/master/PNG/shiny.png" height="30px" style="vertical-align: middle; margin-right: 10px;"> Shiny Apps
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-6}
+### [AESO Grid Monitor: Real-Time Power Generation](https://talman.shinyapps.io/ABpowerGeneration/){target="_blank"}
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### [Alberta Well Leak Report (AER)](https://talman.shinyapps.io/abwellleaks/){target="_blank"}
+
+:::
+
+:::
+
+---
+
+## <img src="https://raw.githubusercontent.com/rstudio/hex-stickers/master/PNG/tidyverse.png" height="30px" style="vertical-align: middle; margin-right: 10px;"> <img src="https://raw.githubusercontent.com/rstudio/hex-stickers/master/PNG/quarto.png" height="30px" style="vertical-align: middle; margin-right: 10px;">Quantitative Research & Trading
+
+### [Petrocurrency: USD/CAD FX-rates and Crude Price](projDir/QTP_usdcad.html){target="_blank"}
+
+### [New South Wales: Eletricity Price Forecasting & Battery Arbitrage](projDir/batteryTradingNSW.html){target="_blank"}
+
+### [Employee Sentiment (NLP) & Alpha in the Oil Sector](projDir/GDNLP.html){target="_blank"}
